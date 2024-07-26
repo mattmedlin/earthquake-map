@@ -6,7 +6,7 @@ This project visualizes real-time earthquake data on a dynamic map using Next.js
 
 ## Live Demo
 
-Check out the live demo: [Project URL](earthquake-data-visualization-map.netlify.app)
+Check out the live demo: [Project URL](https://earthquake-data-visualization-map.netlify.app)
 
 ## Features
 

@@ -21,79 +21,80 @@ interface EarthquakeFeature {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ map }) => {
-  const [timeframe, setTimeframe] = useState<string>("all_month");
+  const [timeframe, setTimeframe] = useState<string>("month");
   const [earthquakes, setEarthquakes] = useState<EarthquakeFeature[]>([]);
   const [minMagnitude, setMinMagnitude] = useState<number>(0);
+  const [isSignificant, setIsSignificant] = useState<boolean>(false);
 
-  useEffect(() => {
+  const fetchEarthquakes = async () => {
     if (!map) return;
+    const response = await fetch(
+      `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${
+        isSignificant ? "significant" : "all"
+      }_${timeframe}.geojson`
+    );
+    const data = await response.json();
 
-    const fetchEarthquakes = async () => {
-      const response = await fetch(
-        `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${timeframe}.geojson`
-      );
-      const data = await response.json();
+    setEarthquakes(data.features);
 
-      setEarthquakes(data.features);
+    if (map.getLayer("earthquake-circle")) {
+      map.removeLayer("earthquake-circle");
+    }
+    if (map.getSource("earthquakes")) {
+      map.removeSource("earthquakes");
+    }
 
-      if (map.getLayer("earthquake-circle")) {
-        map.removeLayer("earthquake-circle");
-      }
-      if (map.getSource("earthquakes")) {
-        map.removeSource("earthquakes");
-      }
+    map.addSource("earthquakes", {
+      type: "geojson",
+      data: data,
+    });
 
-      map.addSource("earthquakes", {
-        type: "geojson",
-        data: data,
-      });
+    map.addLayer({
+      id: "earthquake-circle",
+      type: "circle",
+      source: "earthquakes",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["get", "mag"],
+          1,
+          4,
+          6,
+          24,
+        ],
+        "circle-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "mag"],
+          1,
+          "#2DC4B2",
+          3,
+          "#3BB3C3",
+          5,
+          "#669EC4",
+          7,
+          "#8B88B6",
+          10,
+          "#A2719B",
+        ],
+        "circle-opacity": 0.6,
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#fff",
+      },
+    });
 
-      map.addLayer({
-        id: "earthquake-circle",
-        type: "circle",
-        source: "earthquakes",
-        paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["get", "mag"],
-            1,
-            4,
-            6,
-            24,
-          ],
-          "circle-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "mag"],
-            1,
-            "#2DC4B2",
-            3,
-            "#3BB3C3",
-            5,
-            "#669EC4",
-            7,
-            "#8B88B6",
-            10,
-            "#A2719B",
-          ],
-          "circle-opacity": 0.6,
-          "circle-stroke-width": 1,
-          "circle-stroke-color": "#fff",
-        },
-      });
+    const featureCollection = turf.featureCollection(data.features);
 
-      const featureCollection = turf.featureCollection(data.features);
+    const combinedBbox = turf.bbox(featureCollection);
 
-      const combinedBbox = turf.bbox(featureCollection);
-
-      map.fitBounds(combinedBbox as any, {
-        padding: 20,
-      });
-    };
-
+    map.fitBounds(combinedBbox as any, {
+      padding: 20,
+    });
+  };
+  useEffect(() => {
     fetchEarthquakes();
-  }, [map, timeframe]);
+  }, [map, timeframe, isSignificant]);
 
   const handleMagnitudeChange = (value: number) => {
     setMinMagnitude(value);
@@ -131,6 +132,10 @@ const Sidebar: React.FC<SidebarProps> = ({ map }) => {
     }
   };
 
+  const toggleSignificance = () => {
+    setIsSignificant((prev) => !prev);
+  };
+
   const filteredEarthquakes = earthquakes.filter(
     (earthquake) => earthquake.properties.mag >= minMagnitude
   );
@@ -155,29 +160,50 @@ const Sidebar: React.FC<SidebarProps> = ({ map }) => {
       </div>
       <div className="flex flex-col space-y-2">
         <button
-          onClick={() => setTimeframe("all_day")}
+          onClick={() => setTimeframe("day")}
           className={`py-2 px-4 rounded ${
-            timeframe === "all_day" ? "bg-green-500" : "bg-blue-500"
+            timeframe === "day" ? "bg-green-500" : "bg-blue-500"
           } text-white`}
         >
           Past Day
         </button>
         <button
-          onClick={() => setTimeframe("all_week")}
+          onClick={() => setTimeframe("week")}
           className={`py-2 px-4 rounded ${
-            timeframe === "all_week" ? "bg-green-500" : "bg-blue-500"
+            timeframe === "week" ? "bg-green-500" : "bg-blue-500"
           } text-white`}
         >
           Past 7 Days
         </button>
         <button
-          onClick={() => setTimeframe("all_month")}
+          onClick={() => setTimeframe("month")}
           className={`py-2 px-4 rounded ${
-            timeframe === "all_month" ? "bg-green-500" : "bg-blue-500"
+            timeframe === "month" ? "bg-green-500" : "bg-blue-500"
           } text-white`}
         >
           Past 30 Days
         </button>
+        <div className="flex gap-2">
+          <span className={`${!isSignificant ? "" : "opacity-50 "}`}>All</span>
+          <button
+            onClick={toggleSignificance}
+            className="relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out ring-2 ring-offset-2 focus:ring-blue-500"
+          >
+            <span
+              className={`${
+                isSignificant
+                  ? "translate-x-5 bg-green-500"
+                  : "translate-x-0 bg-blue-500"
+              } inline-block w-5 h-5 transform rounded-full transition-transform duration-200 ease-in-out`}
+            />
+            <span className="sr-only">
+              {isSignificant ? "Significant" : "All"}
+            </span>
+          </button>
+          <span className={`${isSignificant ? "" : "opacity-50 "}`}>
+            Signficant
+          </span>
+        </div>
       </div>
       <div className="mt-2 h-[75%] overflow-y-scroll scrollbar-hide">
         {filteredEarthquakes.map((earthquake) => (

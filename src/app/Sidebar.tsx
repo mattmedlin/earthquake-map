@@ -205,7 +205,7 @@ const Sidebar: React.FC<SidebarProps> = ({ map }) => {
           </span>
         </div>
       </div>
-      <div className="mt-2 h-[75%] overflow-y-scroll scrollbar-hide">
+      <div className="mt-2 h-[72%] overflow-y-scroll scrollbar-hide">
         {filteredEarthquakes.map((earthquake) => (
           <button
             key={earthquake.id}

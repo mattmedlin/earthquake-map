@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   content: [
@@ -16,7 +17,7 @@ const config: Config = {
     },
   },
   plugins: [
-    function ({ addUtilities }) {
+    plugin(function ({ addUtilities }) {
       /** @type {import('tailwindcss').PluginAPI['addUtilities']} */
       const addUtil: typeof addUtilities = addUtilities;
       addUtil({
@@ -29,7 +30,7 @@ const config: Config = {
           },
         },
       });
-    },
+    }),
   ],
 };
 export default config;

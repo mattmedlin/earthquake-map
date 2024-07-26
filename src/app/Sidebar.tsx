@@ -83,7 +83,6 @@ const Sidebar: React.FC<SidebarProps> = ({ map }) => {
         },
       });
 
-      console.log(data);
       const featureCollection = turf.featureCollection(data.features);
 
       const combinedBbox = turf.bbox(featureCollection);
@@ -108,7 +107,18 @@ const Sidebar: React.FC<SidebarProps> = ({ map }) => {
 
     const source = map?.getSource("earthquakes") as mapboxgl.GeoJSONSource;
     if (source) {
+      if (!map) return;
       source.setData(filteredData as any);
+
+      const featureCollection = turf.featureCollection(
+        filteredData.features as any
+      );
+
+      const combinedBbox = turf.bbox(featureCollection);
+
+      map.fitBounds(combinedBbox as any, {
+        padding: 20,
+      });
     }
   };
 
